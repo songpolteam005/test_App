@@ -1,5 +1,6 @@
 "use client";
-import React, { useEffect, useMemo, useState } from "react";
+
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { createBrowserClient } from "@supabase/ssr";
 import {
@@ -8,25 +9,16 @@ import {
   Heart,
   Settings,
   LogOut,
-  Plus,
-  Search,
-  TrendingUp,
   Loader2,
+  ArrowUpRight,
+  Trash2,
   ExternalLink,
 } from "lucide-react";
 
-const CATEGORIES = ["All", "Painting", "Sculpture", "Photography", "NFT"];
-
-export default function MarketplacePage() {
+export default function FavoritesPage() {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [artItems, setArtItems] = useState<any[]>([]);
-  const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
-  const [query, setQuery] = useState("");
-  const [category, setCategory] = useState("All");
-  const [sort, setSort] = useState<"newest" | "price_asc" | "price_desc">(
-    "newest",
-  );
+  const [favoriteItems, setFavoriteItems] = useState<any[]>([]);
 
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -34,42 +26,72 @@ export default function MarketplacePage() {
   );
 
   useEffect(() => {
-    const load = async () => {
+    const fetchFavorites = async () => {
+      // 1. ตรวจสอบสถานะ User
       const {
         data: { user },
       } = await supabase.auth.getUser();
+
       if (!user) {
         window.location.href = "/login";
         return;
       }
       setUser(user);
 
-      // No .eq("user_id", ...) filter here on purpose — Marketplace shows
-      // everyone's artworks, unlike the Dashboard overview.
-      const { data: artworks, error } = await supabase
-        .from("artworks")
-        .select("*, profiles(first_name, last_name, avatar_url)")
+      // 2. ดึงรายการ Favorites พร้อมข้อมูล Artwork และ Profile ของศิลปิน
+      const { data, error } = await supabase
+        .from("favorites")
+        .select(
+          "id, artwork_id, artworks(*, profiles(first_name, last_name, avatar_url))",
+        )
+        .eq("user_id", user.id)
         .order("created_at", { ascending: false });
 
-      if (!error && artworks) {
-        setArtItems(artworks);
+      if (!error && data) {
+        // กรองเอาเฉพาะชิ้นงานที่มีข้อมูลจริง (เผื่อ artwork ถูกลบไปแล้ว)
+        const items = data
+          .map((fav: any) => ({
+            favorite_id: fav.id,
+            ...fav.artworks,
+          }))
+          .filter((item: any) => item.id);
+
+        setFavoriteItems(items);
       } else if (error) {
-        console.error("Failed to load artworks:", error.message);
-      }
-
-      const { data: favs, error: favError } = await supabase
-        .from("favorites")
-        .select("artwork_id")
-        .eq("user_id", user.id);
-
-      if (!favError && favs) {
-        setFavoriteIds(new Set(favs.map((f) => f.artwork_id)));
+        console.error("Error fetching favorites:", error.message);
       }
 
       setLoading(false);
     };
-    load();
+
+    fetchFavorites();
   }, []);
+
+  // ฟังก์ชันลบออกจากรายการโปรด
+  const handleRemoveFavorite = async (
+    e: React.MouseEvent,
+    favoriteId: string,
+    artworkId: string,
+  ) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    // Optimistic UI update: เอาออกจากหน้าจอทันที
+    setFavoriteItems((prev) =>
+      prev.filter(
+        (item) => item.favorite_id !== favoriteId && item.id !== artworkId,
+      ),
+    );
+
+    // ลบออกจากฐานข้อมูล Supabase
+    const { error } = await supabase
+      .from("favorites")
+      .delete()
+      .eq("id", favoriteId);
+    if (error) {
+      console.error("Failed to delete favorite:", error.message);
+    }
+  };
 
   const handleLogout = async () => {
     await fetch("/api/logout", { method: "POST" });
@@ -77,136 +99,71 @@ export default function MarketplacePage() {
     window.location.href = "/login";
   };
 
-  const toggleFavorite = async (e: React.MouseEvent, artworkId: string) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (!user) return;
-
-    const isFav = favoriteIds.has(artworkId);
-
-    // Optimistic UI update
-    setFavoriteIds((prev) => {
-      const next = new Set(prev);
-      if (isFav) {
-        next.delete(artworkId);
-      } else {
-        next.add(artworkId);
-      }
-      return next;
-    });
-
-    if (isFav) {
-      const { error } = await supabase
-        .from("favorites")
-        .delete()
-        .eq("user_id", user.id)
-        .eq("artwork_id", artworkId);
-      if (error) {
-        console.error("Failed to remove favorite:", error.message);
-        setFavoriteIds((prev) => new Set(prev).add(artworkId)); // revert
-      }
-    } else {
-      const { error } = await supabase
-        .from("favorites")
-        .insert({ user_id: user.id, artwork_id: artworkId });
-      if (error) {
-        console.error("Failed to add favorite:", error.message);
-        setFavoriteIds((prev) => {
-          const next = new Set(prev);
-          next.delete(artworkId); // revert
-          return next;
-        });
-      }
-    }
-  };
-
-  const shortName =
-    user?.user_metadata?.first_name || user?.email?.split("@")[0] || "Guest";
-  const initial =
-    user?.user_metadata?.first_name?.[0]?.toUpperCase() ||
-    user?.email?.[0]?.toUpperCase() ||
-    "U";
-  const displayName = user?.user_metadata?.first_name
-    ? `${user.user_metadata.first_name} ${user.user_metadata.last_name || ""}`
-    : user?.email || "Unknown Collector";
-
-  const visibleItems = useMemo(() => {
-    let items = [...artItems];
-
-    if (category !== "All") {
-      items = items.filter((item) => item.category === category);
-    }
-
-    if (query.trim()) {
-      const q = query.trim().toLowerCase();
-      items = items.filter((item) =>
-        (item.title || "").toLowerCase().includes(q),
-      );
-    }
-
-    if (sort === "price_asc") {
-      items.sort((a, b) => Number(a.price || 0) - Number(b.price || 0));
-    } else if (sort === "price_desc") {
-      items.sort((a, b) => Number(b.price || 0) - Number(a.price || 0));
-    }
-    // "newest" is already the default order from the query.
-
-    return items;
-  }, [artItems, category, query, sort]);
-
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#FDFBF7] flex items-center justify-center text-zinc-400">
-        <Loader2 className="animate-spin mr-2" /> Loading Marketplace...
+      <div className="min-h-screen bg-[#FAF9F6] flex items-center justify-center text-[#8B6F47]">
+        <Loader2 className="animate-spin mr-2" size={18} />
+        <span className="text-xs tracking-[0.2em] uppercase">
+          Loading your curated collection
+        </span>
       </div>
     );
   }
 
+  const displayName = user?.user_metadata?.first_name
+    ? `${user.user_metadata.first_name} ${user.user_metadata.last_name || ""}`
+    : user?.email || "Unknown Collector";
+
+  const initial =
+    user?.user_metadata?.first_name?.[0]?.toUpperCase() ||
+    user?.email?.[0]?.toUpperCase() ||
+    "U";
+
   return (
-    <div className="min-h-screen bg-[#FDFBF7] text-zinc-900 font-sans flex overflow-hidden">
-      <aside className="w-20 lg:w-64 fixed h-screen border-r border-zinc-200 bg-white z-50 flex flex-col justify-between transition-all duration-300">
-        <div className="h-24 flex items-center justify-center lg:justify-start lg:px-8 border-b border-zinc-100">
-          <Link
-            href="/"
-            className="text-xl font-bold tracking-tighter uppercase"
-          >
-            Art<span className="text-zinc-400">.</span>
+    <div className="min-h-screen bg-[#FAF9F6] text-[#171412] font-sans flex overflow-hidden">
+      {/* ---------- Sidebar ---------- */}
+      <aside className="w-20 lg:w-64 fixed h-screen border-r border-[#E4DFD5] bg-white z-50 flex flex-col justify-between transition-all duration-300">
+        <div className="h-24 flex items-center justify-center lg:justify-start lg:px-8 border-b border-[#E4DFD5]">
+          <Link href="/" className="font-serif text-2xl tracking-tight italic">
+            Art<span className="text-[#8B6F47] not-italic">.</span>
           </Link>
         </div>
 
-        <nav className="flex-1 py-8 space-y-2 px-4">
+        <nav className="flex-1 py-10 space-y-1 px-4">
+          <p className="hidden lg:block px-4 mb-3 text-[10px] font-bold tracking-[0.25em] uppercase text-zinc-400">
+            Collection
+          </p>
           <MenuItem
             href="/dashboard"
-            icon={<LayoutDashboard size={20} />}
+            icon={<LayoutDashboard size={18} strokeWidth={1.75} />}
             label="Overview"
           />
           <MenuItem
             href="/marketplace"
-            icon={<ImageIcon size={20} />}
+            icon={<ImageIcon size={18} strokeWidth={1.75} />}
             label="Marketplace"
-            active
           />
           <MenuItem
             href="/favorites"
-            icon={<Heart size={20} />}
+            icon={<Heart size={18} strokeWidth={1.75} />}
             label="My Favorites"
+            active
           />
-          <MenuItem icon={<TrendingUp size={20} />} label="Insights" />
           <MenuItem
             href="/settings"
-            icon={<Settings size={20} />}
+            icon={<Settings size={18} strokeWidth={1.75} />}
             label="Settings"
           />
         </nav>
 
-        <div className="p-4 border-t border-zinc-100 bg-zinc-50/50">
-          <div className="flex items-center gap-4 p-3 rounded-xl">
-            <div className="w-10 h-10 rounded-full bg-black text-white flex items-center justify-center font-serif text-lg uppercase flex-shrink-0">
+        <div className="p-4 border-t border-[#E4DFD5] bg-[#FAF9F6]">
+          <div className="flex items-center gap-3 p-3">
+            <div className="w-9 h-9 rounded-full bg-[#171412] text-white flex items-center justify-center font-serif text-base uppercase flex-shrink-0">
               {initial}
             </div>
             <div className="hidden lg:block overflow-hidden">
-              <p className="text-sm font-bold truncate">{displayName}</p>
-              <p className="text-[10px] text-zinc-500 truncate uppercase tracking-widest">
+              <p className="text-sm font-medium truncate">{displayName}</p>
+              <p className="text-[10px] text-[#8B6F47] truncate uppercase tracking-widest">
                 Collector
               </p>
             </div>
@@ -214,149 +171,110 @@ export default function MarketplacePage() {
 
           <button
             onClick={handleLogout}
-            className="w-full mt-2 flex items-center gap-2 text-xs font-bold text-zinc-400 hover:text-red-500 uppercase tracking-widest justify-center lg:justify-start px-4 py-2 transition-colors"
+            className="w-full mt-1 flex items-center gap-2 text-[11px] font-medium text-zinc-400 hover:text-[#171412] uppercase tracking-widest justify-center lg:justify-start px-4 py-3 transition-colors"
           >
-            <LogOut size={14} />{" "}
+            <LogOut size={13} strokeWidth={1.75} />
             <span className="hidden lg:inline">Sign Out</span>
           </button>
         </div>
       </aside>
 
-      <main className="flex-1 ml-20 lg:ml-64 p-8 lg:p-12 overflow-y-auto h-screen">
-        <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
-          <div>
-            <h1 className="text-3xl font-serif font-medium mb-1">
-              Marketplace
+      {/* ---------- Main Content ---------- */}
+      <main className="flex-1 ml-20 lg:ml-64 overflow-y-auto h-screen">
+        <div className="max-w-[1400px] mx-auto p-8 lg:p-14">
+          {/* Header */}
+          <header className="pb-8 border-b border-[#E4DFD5] mb-12">
+            <p className="text-[10px] font-bold tracking-[0.3em] uppercase text-[#8B6F47] mb-3">
+              Curated Saved Items
+            </p>
+            <h1 className="font-serif text-5xl md:text-6xl tracking-tight">
+              My Favorites<span className="text-[#8B6F47]">.</span>
             </h1>
-            <p className="text-xs font-bold tracking-[0.2em] text-zinc-400 uppercase">
-              {artItems.length} works from every artist on Artspace
+            <p className="text-sm text-zinc-500 mt-3">
+              You have {favoriteItems.length} saved artwork
+              {favoriteItems.length !== 1 && "s"} in your personal list.
             </p>
-          </div>
+          </header>
 
-          <Link
-            href="/dashboard/post"
-            className="bg-black text-white px-6 py-3 rounded-none flex items-center gap-2 hover:bg-zinc-800 transition shadow-lg shadow-black/10"
-          >
-            <Plus size={16} />{" "}
-            <span className="text-xs font-bold tracking-[0.2em] uppercase">
-              Post New Work
-            </span>
-          </Link>
-        </header>
-
-        {/* Filter bar */}
-        <div className="flex flex-col md:flex-row md:items-center gap-4 mb-10 pb-6 border-b border-zinc-200">
-          <div className="flex items-center gap-2 border-b border-zinc-200 pb-2 px-2 md:w-72">
-            <Search size={16} className="text-zinc-400 flex-shrink-0" />
-            <input
-              type="text"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search by title..."
-              className="bg-transparent focus:outline-none text-sm w-full"
-            />
-          </div>
-
-          <div className="flex items-center gap-2 overflow-x-auto">
-            {CATEGORIES.map((cat) => (
-              <button
-                key={cat}
-                onClick={() => setCategory(cat)}
-                className={`px-4 py-2 text-[10px] font-bold uppercase tracking-[0.15em] whitespace-nowrap transition-colors ${
-                  category === cat
-                    ? "bg-black text-white"
-                    : "bg-white text-zinc-500 border border-zinc-200 hover:border-black hover:text-black"
-                }`}
+          {/* Grid แสดงงานศิลปะที่บันทึกไว้ */}
+          {favoriteItems.length === 0 ? (
+            <div className="border border-dashed border-[#D9D2C4] p-16 text-center">
+              <Heart
+                size={32}
+                className="mx-auto text-zinc-300 mb-4"
+                strokeWidth={1.2}
+              />
+              <p className="font-serif italic text-lg text-zinc-400 mb-2">
+                No saved artworks yet.
+              </p>
+              <p className="text-xs text-zinc-400 max-w-sm mx-auto mb-6">
+                Explore the marketplace to discover and save extraordinary art
+                pieces to your personal collection.
+              </p>
+              <Link
+                href="/marketplace"
+                className="inline-flex items-center gap-2 text-xs font-bold tracking-[0.2em] uppercase border-b border-[#171412] pb-1 hover:text-[#8B6F47] hover:border-[#8B6F47] transition-colors"
               >
-                {cat}
-              </button>
-            ))}
-          </div>
-
-          <div className="md:ml-auto">
-            <select
-              value={sort}
-              onChange={(e) => setSort(e.target.value as typeof sort)}
-              className="text-[10px] font-bold uppercase tracking-[0.15em] border border-zinc-200 bg-white px-4 py-2 focus:outline-none focus:border-black"
-            >
-              <option value="newest">Newest First</option>
-              <option value="price_asc">Price: Low to High</option>
-              <option value="price_desc">Price: High to Low</option>
-            </select>
-          </div>
-        </div>
-
-        {visibleItems.length === 0 ? (
-          <div className="bg-white border border-zinc-100 p-16 text-center">
-            <p className="text-zinc-400 italic font-serif">
-              {artItems.length === 0
-                ? "No artworks have been posted yet."
-                : "No artworks match your search."}
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-            {visibleItems.map((item) => {
-              const isFav = favoriteIds.has(item.id);
-              return (
+                Explore Marketplace <ArrowUpRight size={13} />
+              </Link>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-8">
+              {favoriteItems.map((item) => (
                 <Link
                   href={`/artwork/${item.id}`}
-                  key={item.id}
+                  key={item.favorite_id || item.id}
                   className="group cursor-pointer block"
                 >
-                  <div className="relative overflow-hidden aspect-square mb-3 bg-zinc-100 shadow-sm">
+                  <div className="relative overflow-hidden aspect-[4/5] mb-4 bg-zinc-100">
                     <img
                       src={item.image_url}
                       alt={item.title}
-                      className="object-cover w-full h-full transition-transform duration-700 group-hover:scale-110"
+                      className="object-cover w-full h-full transition-transform duration-700 group-hover:scale-105"
                     />
+
                     <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                      <button className="bg-white text-black p-3 rounded-full shadow-xl">
-                        <ExternalLink size={16} />
-                      </button>
-                    </div>
-                    {item.user_id === user?.id && (
-                      <span className="absolute top-2 left-2 bg-black text-white text-[9px] font-bold uppercase tracking-widest px-2 py-1">
-                        Your Work
+                      <span className="bg-white/90 text-[#171412] p-3 rounded-full shadow-lg">
+                        <ExternalLink size={15} />
                       </span>
-                    )}
+                    </div>
+
+                    {/* ปุ่มลบออกจาก Favorites */}
                     <button
-                      onClick={(e) => toggleFavorite(e, item.id)}
-                      className="absolute top-2 right-2 w-8 h-8 rounded-full bg-white/90 backdrop-blur flex items-center justify-center shadow-md hover:scale-110 transition-transform"
-                      aria-label={
-                        isFav ? "Remove from favorites" : "Add to favorites"
+                      onClick={(e) =>
+                        handleRemoveFavorite(e, item.favorite_id, item.id)
                       }
+                      title="Remove from favorites"
+                      className="absolute top-2 right-2 w-8 h-8 rounded-full bg-white/90 backdrop-blur text-red-500 hover:bg-red-500 hover:text-white flex items-center justify-center shadow-md hover:scale-110 transition-all z-10"
                     >
-                      <Heart
-                        size={16}
-                        className={
-                          isFav ? "text-red-500 fill-red-500" : "text-zinc-400"
-                        }
-                      />
+                      <Trash2 size={14} />
                     </button>
                   </div>
-                  <h3 className="font-serif text-base line-clamp-1">
+
+                  <h3 className="font-serif text-base italic tracking-tight line-clamp-1 group-hover:text-[#8B6F47] transition-colors">
                     {item.title}
                   </h3>
-                  <p className="text-[10px] text-zinc-400 uppercase tracking-wider mt-0.5 line-clamp-1">
+
+                  <p className="text-[10px] text-zinc-400 uppercase tracking-wider mt-1 line-clamp-1">
                     by{" "}
                     {item.profiles?.first_name
                       ? `${item.profiles.first_name} ${item.profiles.last_name || ""}`
                       : "Unknown Artist"}
                   </p>
-                  <div className="flex justify-between items-center mt-1">
-                    <p className="text-[10px] text-zinc-500 uppercase tracking-wider line-clamp-1">
-                      {item.category}
+
+                  <div className="flex justify-between items-center mt-2 pt-2 border-t border-[#F0ECE1]">
+                    <p className="text-[10px] text-zinc-400 uppercase tracking-wider line-clamp-1">
+                      {item.category || "Fine Art"}
                     </p>
-                    <p className="text-xs font-bold">
-                      ฿ {Number(item.price).toLocaleString()}
+                    <p className="text-xs font-bold tabular-nums">
+                      ฿ {Number(item.price || 0).toLocaleString()}
                     </p>
                   </div>
                 </Link>
-              );
-            })}
-          </div>
-        )}
+              ))}
+            </div>
+          )}
+        </div>
       </main>
     </div>
   );
@@ -366,25 +284,28 @@ function MenuItem({
   icon,
   label,
   active = false,
-  href,
+  href = "#",
 }: {
   icon: any;
   label: string;
   active?: boolean;
   href?: string;
 }) {
-  const content = (
-    <div
-      className={`flex items-center gap-4 px-4 py-3 cursor-pointer rounded-lg transition-all group ${active ? "bg-black text-white shadow-lg" : "text-zinc-500 hover:bg-zinc-100 hover:text-black"}`}
+  return (
+    <Link
+      href={href}
+      className={`flex items-center gap-4 px-4 py-3 cursor-pointer transition-all group border-l-2 ${
+        active
+          ? "border-[#171412] bg-[#FAF9F6] text-[#171412]"
+          : "border-transparent text-zinc-400 hover:border-[#D9D2C4] hover:text-[#171412]"
+      }`}
     >
       {icon}
       <span
-        className={`text-sm font-medium hidden lg:block ${active ? "font-bold tracking-wide" : ""}`}
+        className={`text-sm hidden lg:block ${active ? "font-medium" : ""}`}
       >
         {label}
       </span>
-    </div>
+    </Link>
   );
-
-  return href ? <Link href={href}>{content}</Link> : content;
 }

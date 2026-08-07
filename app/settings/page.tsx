@@ -1,4 +1,5 @@
 "use client";
+
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { createBrowserClient } from "@supabase/ssr";
@@ -8,9 +9,9 @@ import {
   Heart,
   Settings as SettingsIcon,
   LogOut,
-  TrendingUp,
   Loader2,
   CheckCircle2,
+  User,
 } from "lucide-react";
 
 export default function SettingsPage() {
@@ -89,66 +90,69 @@ export default function SettingsPage() {
     setSaving(false);
   };
 
-  const shortName = firstName || user?.email?.split("@")[0] || "Guest";
-  const initial =
-    firstName?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || "U";
   const displayName = firstName
     ? `${firstName} ${lastName || ""}`
     : user?.email || "Unknown Collector";
 
+  const initial =
+    firstName?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || "U";
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#FDFBF7] flex items-center justify-center text-zinc-400">
-        <Loader2 className="animate-spin mr-2" /> Loading Settings...
+      <div className="min-h-screen bg-[#FAF9F6] flex items-center justify-center text-[#8B6F47]">
+        <Loader2 className="animate-spin mr-2" size={18} />
+        <span className="text-xs tracking-[0.2em] uppercase">
+          Loading Settings
+        </span>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#FDFBF7] text-zinc-900 font-sans flex overflow-hidden">
-      <aside className="w-20 lg:w-64 fixed h-screen border-r border-zinc-200 bg-white z-50 flex flex-col justify-between transition-all duration-300">
-        <div className="h-24 flex items-center justify-center lg:justify-start lg:px-8 border-b border-zinc-100">
-          <Link
-            href="/"
-            className="text-xl font-bold tracking-tighter uppercase"
-          >
-            Art<span className="text-zinc-400">.</span>
+    <div className="min-h-screen bg-[#FAF9F6] text-[#171412] font-sans flex overflow-hidden">
+      {/* ---------- Sidebar ---------- */}
+      <aside className="w-20 lg:w-64 fixed h-screen border-r border-[#E4DFD5] bg-white z-50 flex flex-col justify-between transition-all duration-300">
+        <div className="h-24 flex items-center justify-center lg:justify-start lg:px-8 border-b border-[#E4DFD5]">
+          <Link href="/" className="font-serif text-2xl tracking-tight italic">
+            Art<span className="text-[#8B6F47] not-italic">.</span>
           </Link>
         </div>
 
-        <nav className="flex-1 py-8 space-y-2 px-4">
+        <nav className="flex-1 py-10 space-y-1 px-4">
+          <p className="hidden lg:block px-4 mb-3 text-[10px] font-bold tracking-[0.25em] uppercase text-zinc-400">
+            Collection
+          </p>
           <MenuItem
             href="/dashboard"
-            icon={<LayoutDashboard size={20} />}
+            icon={<LayoutDashboard size={18} strokeWidth={1.75} />}
             label="Overview"
           />
           <MenuItem
             href="/marketplace"
-            icon={<ImageIcon size={20} />}
+            icon={<ImageIcon size={18} strokeWidth={1.75} />}
             label="Marketplace"
           />
           <MenuItem
             href="/favorites"
-            icon={<Heart size={20} />}
+            icon={<Heart size={18} strokeWidth={1.75} />}
             label="My Favorites"
           />
-          <MenuItem icon={<TrendingUp size={20} />} label="Insights" />
           <MenuItem
             href="/settings"
-            icon={<SettingsIcon size={20} />}
+            icon={<SettingsIcon size={18} strokeWidth={1.75} />}
             label="Settings"
             active
           />
         </nav>
 
-        <div className="p-4 border-t border-zinc-100 bg-zinc-50/50">
-          <div className="flex items-center gap-4 p-3 rounded-xl">
-            <div className="w-10 h-10 rounded-full bg-black text-white flex items-center justify-center font-serif text-lg uppercase flex-shrink-0">
+        <div className="p-4 border-t border-[#E4DFD5] bg-[#FAF9F6]">
+          <div className="flex items-center gap-3 p-3">
+            <div className="w-9 h-9 rounded-full bg-[#171412] text-white flex items-center justify-center font-serif text-base uppercase flex-shrink-0">
               {initial}
             </div>
             <div className="hidden lg:block overflow-hidden">
-              <p className="text-sm font-bold truncate">{displayName}</p>
-              <p className="text-[10px] text-zinc-500 truncate uppercase tracking-widest">
+              <p className="text-sm font-medium truncate">{displayName}</p>
+              <p className="text-[10px] text-[#8B6F47] truncate uppercase tracking-widest">
                 Collector
               </p>
             </div>
@@ -156,90 +160,103 @@ export default function SettingsPage() {
 
           <button
             onClick={handleLogout}
-            className="w-full mt-2 flex items-center gap-2 text-xs font-bold text-zinc-400 hover:text-red-500 uppercase tracking-widest justify-center lg:justify-start px-4 py-2 transition-colors"
+            className="w-full mt-1 flex items-center gap-2 text-[11px] font-medium text-zinc-400 hover:text-[#171412] uppercase tracking-widest justify-center lg:justify-start px-4 py-3 transition-colors"
           >
-            <LogOut size={14} />{" "}
+            <LogOut size={13} strokeWidth={1.75} />
             <span className="hidden lg:inline">Sign Out</span>
           </button>
         </div>
       </aside>
 
-      <main className="flex-1 ml-20 lg:ml-64 p-8 lg:p-12 overflow-y-auto h-screen">
-        <header className="mb-10">
-          <h1 className="text-3xl font-serif font-medium mb-1">Settings</h1>
-          <p className="text-xs font-bold tracking-[0.2em] text-zinc-400 uppercase">
-            Manage your profile
-          </p>
-        </header>
+      {/* ---------- Main Content ---------- */}
+      <main className="flex-1 ml-20 lg:ml-64 overflow-y-auto h-screen">
+        <div className="max-w-[1400px] mx-auto p-8 lg:p-14">
+          {/* Header */}
+          <header className="pb-8 border-b border-[#E4DFD5] mb-12">
+            <p className="text-[10px] font-bold tracking-[0.3em] uppercase text-[#8B6F47] mb-3">
+              Account Management
+            </p>
+            <h1 className="font-serif text-5xl md:text-6xl tracking-tight">
+              Settings<span className="text-[#8B6F47]">.</span>
+            </h1>
+            <p className="text-sm text-zinc-500 mt-3">
+              Update your collector identity and personal profile details.
+            </p>
+          </header>
 
-        <div className="max-w-xl bg-white border border-zinc-100 p-8 md:p-10 shadow-sm">
-          <h2 className="text-xl font-serif mb-6">Profile Information</h2>
+          {/* Settings Form Container */}
+          <div className="max-w-2xl bg-white border border-[#E4DFD5] p-8 md:p-12 shadow-sm">
+            <h2 className="font-serif text-2xl tracking-tight mb-8 pb-4 border-b border-[#E4DFD5]">
+              Profile Information
+            </h2>
 
-          {error && (
-            <div className="mb-6 border border-red-200 bg-red-50 p-4 text-sm text-red-600">
-              {error}
-            </div>
-          )}
+            {error && (
+              <div className="mb-6 border border-red-200 bg-red-50/50 p-4 text-xs font-medium text-red-600">
+                {error}
+              </div>
+            )}
 
-          {message && (
-            <div className="mb-6 border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700 flex items-center gap-2">
-              <CheckCircle2 size={16} /> {message}
-            </div>
-          )}
+            {message && (
+              <div className="mb-6 border border-emerald-200 bg-emerald-50/50 p-4 text-xs font-medium text-emerald-700 flex items-center gap-2">
+                <CheckCircle2 size={16} /> {message}
+              </div>
+            )}
 
-          <form onSubmit={handleSave} className="space-y-8">
-            <div className="grid grid-cols-2 gap-6">
-              <div className="group relative">
-                <label className="absolute -top-3 left-0 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">
-                  First Name
+            <form onSubmit={handleSave} className="space-y-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-[0.2em] text-[#8B6F47] mb-2">
+                    First Name
+                  </label>
+                  <input
+                    required
+                    type="text"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    className="w-full py-3 px-4 border border-[#E4DFD5] bg-[#FAF9F6] text-sm focus:outline-none focus:border-[#171412] transition-colors"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-[0.2em] text-[#8B6F47] mb-2">
+                    Last Name
+                  </label>
+                  <input
+                    type="text"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    className="w-full py-3 px-4 border border-[#E4DFD5] bg-[#FAF9F6] text-sm focus:outline-none focus:border-[#171412] transition-colors"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-400 mb-2">
+                  Registered Email
                 </label>
                 <input
-                  required
-                  type="text"
-                  value={firstName}
-                  onChange={(e) => setFirstName(e.target.value)}
-                  className="w-full py-4 border-b border-zinc-200 bg-transparent text-lg font-serif focus:outline-none focus:border-black transition-all duration-500 pt-2"
+                  disabled
+                  type="email"
+                  value={user?.email || ""}
+                  className="w-full py-3 px-4 border border-[#E4DFD5] bg-zinc-100 text-sm text-zinc-400 cursor-not-allowed"
                 />
+                <p className="text-[10px] text-zinc-400 mt-2 tracking-wide">
+                  Email addresses are managed via authentication security.
+                </p>
               </div>
-              <div className="group relative">
-                <label className="absolute -top-3 left-0 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">
-                  Last Name
-                </label>
-                <input
-                  type="text"
-                  value={lastName}
-                  onChange={(e) => setLastName(e.target.value)}
-                  className="w-full py-4 border-b border-zinc-200 bg-transparent text-lg font-serif focus:outline-none focus:border-black transition-all duration-500 pt-2"
-                />
+
+              <div className="pt-4">
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="bg-[#171412] text-white px-8 py-4 flex items-center justify-center gap-3 disabled:bg-zinc-400 text-xs font-bold tracking-[0.2em] uppercase hover:bg-[#8B6F47] transition-colors duration-300"
+                >
+                  <span>{saving ? "Saving Changes..." : "Save Profile"}</span>
+                  {saving && <Loader2 size={15} className="animate-spin" />}
+                </button>
               </div>
-            </div>
-
-            <div className="group relative">
-              <label className="absolute -top-3 left-0 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">
-                Email Address
-              </label>
-              <input
-                disabled
-                type="email"
-                value={user?.email || ""}
-                className="w-full py-4 border-b border-zinc-200 bg-zinc-50 text-lg font-serif text-zinc-400 pt-2 cursor-not-allowed"
-              />
-              <p className="text-[10px] text-zinc-400 mt-2 tracking-wide">
-                Email cannot be changed here.
-              </p>
-            </div>
-
-            <button
-              type="submit"
-              disabled={saving}
-              className="bg-black text-white px-8 py-4 flex items-center justify-center gap-3 disabled:bg-zinc-600 transition-all duration-500"
-            >
-              <span className="text-xs font-bold tracking-[0.2em] uppercase">
-                {saving ? "Saving..." : "Save Changes"}
-              </span>
-              {saving ? <Loader2 size={16} className="animate-spin" /> : null}
-            </button>
-          </form>
+            </form>
+          </div>
         </div>
       </main>
     </div>
@@ -250,25 +267,28 @@ function MenuItem({
   icon,
   label,
   active = false,
-  href,
+  href = "#",
 }: {
   icon: any;
   label: string;
   active?: boolean;
   href?: string;
 }) {
-  const content = (
-    <div
-      className={`flex items-center gap-4 px-4 py-3 cursor-pointer rounded-lg transition-all group ${active ? "bg-black text-white shadow-lg" : "text-zinc-500 hover:bg-zinc-100 hover:text-black"}`}
+  return (
+    <Link
+      href={href}
+      className={`flex items-center gap-4 px-4 py-3 cursor-pointer transition-all group border-l-2 ${
+        active
+          ? "border-[#171412] bg-[#FAF9F6] text-[#171412]"
+          : "border-transparent text-zinc-400 hover:border-[#D9D2C4] hover:text-[#171412]"
+      }`}
     >
       {icon}
       <span
-        className={`text-sm font-medium hidden lg:block ${active ? "font-bold tracking-wide" : ""}`}
+        className={`text-sm hidden lg:block ${active ? "font-medium" : ""}`}
       >
         {label}
       </span>
-    </div>
+    </Link>
   );
-
-  return href ? <Link href={href}>{content}</Link> : content;
 }
