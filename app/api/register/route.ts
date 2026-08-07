@@ -1,6 +1,6 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers"; // เพิ่มการนำเข้า cookies จาก next/headers
+import { cookies } from "next/headers";
 
 export async function POST(request: Request) {
   try {
@@ -13,16 +13,18 @@ export async function POST(request: Request) {
       );
     }
 
-    // เรียกใช้ cookieStore ของ Next.js โดยตรง
-    // เรียกใช้ cookieStore ของ Next.js โดยตรง
     const cookieStore = await cookies();
 
-    // 💡 เพิ่ม .trim() เพื่อป้องกันปัญหาช่องว่างหรือ Enter ที่มองไม่เห็นจากไฟล์ .env
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!.trim();
-    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!.trim();
+    // เช็กและป้องกัน Error กรณีดึงค่า .env ไม่เจอ
+    const supabaseUrl = (
+      process.env.NEXT_PUBLIC_SUPABASE_URL ||
+      "https://gqgtzeapgmtjznyogkio.supabase.co"
+    ).trim();
 
-    // ปริ้นต์เช็คใน Terminal ว่าดึง URL มาได้ถูกต้องจริงๆ
-    console.log("🔗 URL ที่ใช้เชื่อมต่อ:", supabaseUrl);
+    const supabaseKey = (
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdxZ3R6ZWFwZ210anpueW9na2lvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE0NTg5OTksImV4cCI6MjA4NzAzNDk5OX0.IT57Tg2MNvYDPBqrh-dVwHCFm4okqSWLelNgnWLqV3c"
+    ).trim();
 
     const supabase = createServerClient(supabaseUrl, supabaseKey, {
       cookies: {
@@ -51,12 +53,11 @@ export async function POST(request: Request) {
     });
 
     if (error) {
-      // ปริ้นต์ Error ออก Terminal เพื่อให้รู้สาเหตุที่แท้จริงถ้าสมัครไม่ผ่าน
       console.log("🚨 Supabase SignUp Error:", error.message);
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
 
-    // 2. ถ้าสมัครผ่านแต่ยังไม่มี session ให้ลองสั่ง Login อัตโนมัติทันที
+    // 2. ถ้าสมัครผ่านแต่ยังไม่มี session ให้สั่ง Login อัตโนมัติทันที
     if (data.user && !data.session) {
       const { data: signInData, error: signInError } =
         await supabase.auth.signInWithPassword({
@@ -65,7 +66,7 @@ export async function POST(request: Request) {
         });
 
       if (signInError) {
-        console.log("🚨 Supabase SignIn Error:", signInError.message);
+        console.log("🚨 Supabase Auto-SignIn Error:", signInError.message);
         return NextResponse.json(
           {
             message:
@@ -76,7 +77,6 @@ export async function POST(request: Request) {
         );
       }
 
-      // ส่งกลับได้เลย Cookie จะถูกจัดการโดย next/headers อัตโนมัติ
       return NextResponse.json(
         {
           message: "Registration successful!",
@@ -87,7 +87,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // 3. ถ้าปิด Confirm Email ไว้ สมาชิกจะสมัครเสร็จพร้อม Session ทันที
+    // 3. ถ้าปิด Confirm Email ไว้ จะได้ User + Session ทันที
     return NextResponse.json(
       {
         message: "Registration successful!",
@@ -97,7 +97,7 @@ export async function POST(request: Request) {
       { status: 201 },
     );
   } catch (err: any) {
-    console.log("🚨 Internal Server Error:", err);
+    console.log("🚨 Internal Register Error:", err);
     return NextResponse.json(
       { error: "Internal Server Error" },
       { status: 500 },
