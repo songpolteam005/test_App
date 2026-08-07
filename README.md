@@ -1,36 +1,49 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🎨 Art. — Digital Art Gallery & Marketplace
 
-## Getting Started
+<p align="center">
+  <img src="https://images.unsplash.com/photo-1579783902614-a3fb3927b675?q=80&w=1200&auto=format&fit=crop" alt="Art Space Banner" width="100%" style="border-radius: 8px; max-height: 380px; object-fit: cover;" />
+</p>
 
-First, run the development server:
+<p align="center">
+  <b>A minimalist, museum-grade web platform for digital art collectors and creators.</b>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Next.js-15%2B-black?style=for-the-badge&logo=next.js" alt="Next.js" />
+  <img src="https://img.shields.io/badge/Supabase-Database%20%26%20Auth-emerald?style=for-the-badge&logo=supabase" alt="Supabase" />
+  <img src="https://img.shields.io/badge/Tailwind_CSS-3.0-38bdf8?style=for-the-badge&logo=tailwind-css" alt="Tailwind CSS" />
+  <img src="https://img.shields.io/badge/Vercel-Deployed-black?style=for-the-badge&logo=vercel" alt="Vercel" />
+</p>
+
+---
+
+## 🌟 Key Features
+
+- 🔐 **Authentication & Session Security:** Integrated with Supabase SSR Auth supporting cookie-based session management.
+- 🖼️ **Collector Dashboard (Overview):** Real-time analytics displaying active listings, total views, and overall portfolio values.
+- 🛒 **Filterable Marketplace:** Discover, search by title, filter by category (Painting, Sculpture, Photography, NFT), and sort by pricing.
+- ❤️ **Personal Curated Favorites:** Optimistic UI heart toggle allowing users to build and manage their personal saved collection.
+- 📜 **Museum-Grade Artwork Detail View:** Comprehensive exhibition view complete with accession tagging, artist profiles, and pricing details.
+- ⚙️ **User Profile Settings:** Personalization settings allowing creators to update display metadata seamlessly.
+- 📤 **Storage File Upload:** Direct-to-bucket image hosting via Supabase Storage.
+
+---
+
+## 🛠️ Tech Stack
+
+- **Framework:** [Next.js 15](https://nextjs.org/) (App Router)
+- **Database & Auth:** [Supabase](https://supabase.com/) (`@supabase/ssr`, Postgres, Storage)
+- **Styling:** [Tailwind CSS](https://tailwindcss.com/)
+- **Icons:** [Lucide React](https://lucide.dev/)
+- **Deployment:** [Vercel](https://vercel.com/)
+
+---
+
+## 🚀 Getting Started
+
+### 1. Clone the repository
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone [https://github.com/your-username/art-gallery-app.git](https://github.com/your-username/art-gallery-app.git)
+cd art-gallery-app
 ```
-
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
