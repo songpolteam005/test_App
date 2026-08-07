@@ -23,56 +23,14 @@
 ---
 
 ## 🌟 ฟีเจอร์หลักของระบบ (Key Features)
+<img width="1024" height="534" alt="a" src="https://github.com/user-attachments/assets/ab451136-5c39-4e81-bd2b-c2dff1ceceba" />
+<img width="1024" height="529" alt="b" src="https://github.com/user-attachments/assets/54582edb-9eb1-460f-8b0e-ec11d813385c" />
+<img width="1024" height="528" alt="c" src="https://github.com/user-attachments/assets/b389f81b-dbee-42ff-b5dc-ffff94b996f9" />
+<img width="1024" height="535" alt="d" src="https://github.com/user-attachments/assets/7a8a4f47-f689-4f13-ab8c-7bd3cd61ba86" />
+<img width="1854" height="958" alt="e" src="https://github.com/user-attachments/assets/1b1c17a8-9fdc-4b3d-8b73-385e42e039a5" />
+<img width="1852" height="958" alt="f" src="https://github.com/user-attachments/assets/4a0ef2e9-cc5c-4825-806a-ad2f312c2438" />
+<img width="1855" height="960" alt="g" src="https://github.com/user-attachments/assets/aa401dbf-776b-4cb9-8dd9-4bde85016634" />
 
-- 🏛️ **Landing & Exhibition Page:** หน้าแรกสไตล์มิวเซียมระดับโลก นำเสนอสโลแกน _"Pure Form"_ และ _"Silence is golden"_ พร้อมหมวดหมู่ผลงานยอดนิยม
-- 🔐 **Authentication & Access Control:** ระบบเข้าสู่ระบบ (Sign In) และสมัครสมาชิก (Sign Up) ผ่าน Supabase Auth ปลอดภัยด้วย Cookie-based Session
-- 📊 **Collector Dashboard (Overview):** หน้าสรุปข้อมูลส่วนตัวของผู้สะสม คำนวณมูลค่าพอร์ตโฟลิโอรวม (`Portfolio Value`), จำนวนรายการที่ลงขาย (`Items for Sale`), และสถิติการเข้าชม (`Total Views`)
-- 🛒 **Global Marketplace:** ตลาดรวมผลงานศิลปะ สามารถค้นหาชื่อผลงาน, กรองตามหมวดหมู่ (_Painting, Sculpture, Photography, NFT_) และจัดเรียงตามราคาได้
-- ❤️ **Curated Favorites:** ระบบบันทึกผลงานโปรดแบบ Optimistic UI (กดถูกใจแล้วอัปเดตหน้าจอทันที) สามารถจัดการและลบออกจากลิสต์ส่วนตัวได้ตลอดเวลา
-- 📤 **Artwork Management:** ศิลปินสามารถอัปโหลดภาพผลงาน กำหนดราคา หมวดหมู่ และรายละเอียดเข้าสู่ระบบ Supabase Storage ได้โดยตรง
-- ⚙️ **Profile Settings:** หน้าจัดการข้อมูลผู้ใช้งาน ปรับเปลี่ยนชื่อ-นามสกุล และอัปเดตโปรไฟล์บนระบบฐานข้อมูล
 
----
 
-## 🛠️ เทคโนโลยีที่ใช้ (Tech Stack)
 
-- **Frontend:** Next.js 15 (App Router), React 19, TypeScript
-- **Styling:** Tailwind CSS, Lucide React Icons
-- **Backend & Database:** Supabase PostgreSQL, Supabase SSR Auth, Supabase Storage
-- **Deployment:** Vercel
-
----
-
-## 🗄️ โครงสร้างฐานข้อมูล (Database Schema)
-
-```sql
--- 1. ตารางข้อมูลโปรไฟล์ผู้ใช้งาน (Profiles)
-CREATE TABLE public.profiles (
-  id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
-  first_name TEXT NOT NULL,
-  last_name TEXT,
-  avatar_url TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- 2. ตารางผลงานศิลปะ (Artworks)
-CREATE TABLE public.artworks (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
-  title TEXT NOT NULL,
-  description TEXT,
-  category TEXT NOT NULL,
-  price NUMERIC NOT NULL DEFAULT 0,
-  image_url TEXT NOT NULL,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- 3. ตารางผลงานที่ชื่นชอบ (Favorites)
-CREATE TABLE public.favorites (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
-  artwork_id UUID REFERENCES public.artworks(id) ON DELETE CASCADE NOT NULL,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  UNIQUE(user_id, artwork_id)
-);
-```
