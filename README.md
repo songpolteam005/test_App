@@ -22,7 +22,7 @@
 
 ---
 
-## 🌟 ฟีเจอร์หลักของระบบ (Key Features)
+## 🌟 ฟีเจอร์หลักของระบบ
 <img width="1024" height="534" alt="a" src="https://github.com/user-attachments/assets/ab451136-5c39-4e81-bd2b-c2dff1ceceba" />
 <img width="1024" height="529" alt="b" src="https://github.com/user-attachments/assets/54582edb-9eb1-460f-8b0e-ec11d813385c" />
 <img width="1024" height="528" alt="c" src="https://github.com/user-attachments/assets/b389f81b-dbee-42ff-b5dc-ffff94b996f9" />
